@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+# Build infrastructure
+compile_commands.json
+build/
+.cache/
