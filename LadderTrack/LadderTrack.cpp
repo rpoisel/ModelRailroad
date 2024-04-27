@@ -10,9 +10,43 @@ using SignedIndex = int;
 using UnsignedIndex = size_t;
 SignedIndex const IDX_INVALID = -1;
 
-class OutputModule {
+template <typename T, size_t Size> class ArrayWrapper {
 public:
-  OutputModule(uint8_t addr) : addr{addr} {}
+  T data[Size];
+
+  template <typename... Args>
+  explicit ArrayWrapper(Args... args) : data{T(args)...} {}
+
+  class Iterator {
+  private:
+    T *ptr;
+
+  public:
+    Iterator(T *ptr) : ptr(ptr) {}
+
+    Iterator &operator++() {
+      ptr++;
+      return *this;
+    }
+
+    bool operator!=(const Iterator &other) const { return ptr != other.ptr; }
+
+    // Overload the dereference operator (*iterator)
+    T &operator*() const { return *ptr; }
+  };
+
+  T &operator[](size_t index) { return data[index]; }
+
+  const T &operator[](size_t index) const { return data[index]; }
+
+  Iterator begin() { return Iterator(&data[0]); }
+
+  Iterator end() { return Iterator(&data[Size]); }
+};
+
+class I2COutputModule {
+public:
+  I2COutputModule(uint8_t addr) : addr{addr} {}
   inline void reset() { pin_states = 0; }
   inline void set_pin_on(uint8_t pin) { pin_states |= (0x01 << pin); }
   inline void commit() {
@@ -40,10 +74,6 @@ struct OutputModulePin {
   uint8_t pin;
 };
 
-OutputModule output_modules[]{
-    0x20, 0x22, 0x24, 0x26, 0x28,
-};
-
 struct Switch {
   Switch(OutputModulePin const &pin_straight, OutputModulePin const &pin_turn)
       : pin_straight{pin_straight}, pin_turn{pin_turn} {}
@@ -51,11 +81,11 @@ struct Switch {
   OutputModulePin const pin_turn;
 };
 
-struct SwitchAction {
+template <class OutputModules> struct SwitchAction {
   Switch const *railroad_switch;
   Direction direction;
 
-  void perform() const {
+  void perform(OutputModules &output_modules) const {
     OutputModulePin const *module_pin = direction == STRAIGHT
                                             ? &railroad_switch->pin_straight
                                             : &railroad_switch->pin_turn;
@@ -70,24 +100,22 @@ struct SwitchAction {
   }
 };
 
-struct InstructionList {
+template <class OutputModules> struct InstructionList {
   UnsignedIndex length;
-  SwitchAction actions[4];
+  SwitchAction<OutputModules> actions[4];
 
   inline bool is_valid() const { return length > 0; }
 
-  void perform() const {
+  void perform(OutputModules &output_modules) const {
     for (UnsignedIndex idx_awl = 0; idx_awl < length; idx_awl++) {
-      actions[idx_awl].perform();
+      actions[idx_awl].perform(output_modules);
     }
 
-    for (OutputModule &output_module : output_modules) {
+    for (I2COutputModule &output_module : output_modules) {
       output_module.commit();
     }
   }
 };
-
-InstructionList const IL_INVALID = {0, {}};
 
 struct Route {
   Position from;
@@ -105,9 +133,9 @@ bool operator==(Route const &first, Route const &second) {
   return first.from == second.from && first.to == second.to;
 }
 
-struct Line {
+template <class OutputModules> struct Line {
   Route route;
-  InstructionList instruction_list;
+  InstructionList<OutputModules> instruction_list;
 };
 
 struct PinMapping {
@@ -115,11 +143,14 @@ struct PinMapping {
   Position position;
 };
 
+using I2COutputModules = ArrayWrapper<I2COutputModule, 5>;
+
 Switch const SWITCH_1{{1, 0}, {2, 1}};
 Switch const SWITCH_2{{3, 0}, {4, 1}};
 Switch const SWITCH_3{{3, 5}, {3, 6}};
 
-Line const TABLE[] = {
+Line<I2COutputModules> const TABLE[] = {
+
     // First line
     {
         {1, 3}, // Route
@@ -203,8 +234,11 @@ Position determine_button_position() {
   return PIN_MAPPINGS[pin_idx_pressed].position;
 }
 
-InstructionList determine_instruction_list(Route const &route) {
-  for (Line const &row : TABLE) {
+InstructionList<I2COutputModules>
+determine_instruction_list(Route const &route) {
+  InstructionList<I2COutputModules> const IL_INVALID = {0, {}};
+
+  for (auto const &row : TABLE) {
     if (row.route == route) {
       return row.instruction_list;
     }
@@ -217,12 +251,14 @@ void setup() {
   Serial.begin(9600);
   Wire.begin();
 
-  for (PinMapping const &pin_mapping : PIN_MAPPINGS) {
+  for (auto const &pin_mapping : PIN_MAPPINGS) {
     pinMode(pin_mapping.pin, INPUT_PULLUP);
   }
 }
 
 void loop() {
+  I2COutputModules output_modules{0x20, 0x22, 0x24, 0x26, 0x28};
+
   // see: https://github.com/RalphBacon/PCF8574-Pin-Extender-I2C/tree/master
   int from_position = determine_button_position();
   int to_position = determine_button_position();
@@ -230,10 +266,10 @@ void loop() {
   Route route{from_position, to_position};
   route.print();
 
-  InstructionList instruction_list = determine_instruction_list(route);
+  auto const instruction_list = determine_instruction_list(route);
 
   if (instruction_list.is_valid()) {
-    instruction_list.perform();
+    instruction_list.perform(output_modules);
   } else {
     Serial.println("  Route is unknown.");
   }
