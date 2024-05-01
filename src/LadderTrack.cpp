@@ -263,7 +263,7 @@ void loop() {
   int from_position = determine_button_position();
   int to_position = determine_button_position();
 
-  Route route{from_position, to_position};
+  Route const route{from_position, to_position};
   route.print();
 
   auto const instruction_list = determine_instruction_list(route);
