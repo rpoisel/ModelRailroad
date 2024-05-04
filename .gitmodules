@@ -1,0 +1,6 @@
+[submodule "lib/AceRoutine"]
+	path = lib/AceRoutine
+	url = git@github.com:bxparks/AceRoutine.git
+[submodule "lib/AceCommon"]
+	path = lib/AceCommon
+	url = git@github.com:bxparks/AceCommon.git
