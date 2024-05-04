@@ -16,6 +16,7 @@ using SignedIndex = int;
 using UnsignedIndex = size_t;
 
 constexpr uint8_t I2C_INTERRUPT_PIN = 2;
+constexpr Position POS_INVALID = -1;
 
 class I2COutputModule {
 public:
@@ -52,7 +53,7 @@ struct IOPin {
     Serial.println(pin);
   }
 
-  bool get_position(Position &result) const {
+  Position get_position() const {
     struct PinMapping {
       uint8_t module_idx;
       uint8_t pin;
@@ -84,11 +85,10 @@ struct IOPin {
 
     for (auto const &pin_mapping : PIN_MAPPINGS) {
       if (pin_mapping.pin == pin) {
-        result = pin_mapping.position;
-        return true;
+        return pin_mapping.position;
       }
     }
-    return false;
+    return POS_INVALID;
   }
 };
 
@@ -150,6 +150,13 @@ public:
     }
 
     return IL_INVALID;
+  }
+
+  void println() const {
+    Serial.print("Route ");
+    Serial.print(from_);
+    Serial.print(" => ");
+    Serial.println(to_);
   }
 
   Route &operator=(Route &&other) {
@@ -248,10 +255,10 @@ public:
         if (!rc_ok) {
           continue;
         }
-        rc_ok = from_pin.get_position(from_position);
-      } while (!rc_ok);
-      Serial.print("From position: ");
-      from_pin.println();
+        Serial.print("From pin: ");
+        from_pin.println();
+        from_position = from_pin.get_position();
+      } while (from_position == POS_INVALID);
 
       do {
         COROUTINE_AWAIT(i2c_input_changed);
@@ -261,12 +268,13 @@ public:
         if (!rc_ok) {
           continue;
         }
-        rc_ok = to_pin.get_position(to_position);
-      } while (!rc_ok);
-      Serial.print("To position: ");
-      to_pin.println();
+        Serial.print("To pin: ");
+        to_pin.println();
+        to_position = to_pin.get_position();
+      } while (to_position == POS_INVALID);
 
       route = {from_position, to_position};
+      route.println();
       instruction_list = route.instruction_list();
 
       if (instruction_list.is_valid()) {
