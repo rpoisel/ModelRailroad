@@ -299,7 +299,7 @@ void setup() {
   pinMode(I2C_INTERRUPT_PIN, INPUT_PULLUP);
   attachInterrupt(
       digitalPinToInterrupt(I2C_INTERRUPT_PIN),
-      []() { i2c_input_changed = true; }, CHANGE);
+      []() { i2c_input_changed = true; }, FALLING);
 }
 
 void loop() { ladder_track.runCoroutine(); }
