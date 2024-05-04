@@ -30,8 +30,8 @@ public:
 
     delay(200);
 
-    // then, reset all pin values so that coils are no more supplied with
-    // current
+    // then, reset all pin values so that coils are no
+    // more supplied with current
     Wire.beginTransmission(addr);
     Wire.write(0x00); // TODO might need inversion
     Wire.endTransmission();
@@ -90,14 +90,10 @@ struct IOPin {
     }
     return false;
   }
-
-  bool operator==(IOPin const &other) const {
-    return module_idx == other.module_idx && pin == other.pin;
-  }
 };
 
 struct Switch {
-  Switch(IOPin const &pin_straight, IOPin const &pin_turn)
+  constexpr Switch(IOPin const &pin_straight, IOPin const &pin_turn)
       : pin_straight{pin_straight}, pin_turn{pin_turn} {}
   IOPin const pin_straight;
   IOPin const pin_turn;
@@ -139,62 +135,68 @@ template <class OutputModules> struct InstructionList {
   }
 };
 
-struct Route {
-  Position from;
-  Position to;
-};
-
-bool operator==(Route const &first, Route const &second) {
-  return first.from == second.from && first.to == second.to;
-}
-
-template <class OutputModules> struct Line {
-  Route route;
-  InstructionList<OutputModules> instruction_list;
-};
-
 using I2COutputModules = Array<I2COutputModule, 5>;
 
-Switch const SWITCH_1{{1, 0}, {2, 1}};
-Switch const SWITCH_2{{3, 0}, {4, 1}};
-Switch const SWITCH_3{{3, 5}, {3, 6}};
+class Route {
+public:
+  Route() {}
+  Route(Position from, Position to) : from_{from}, to_{to} {}
 
-Line<I2COutputModules> const TABLE[] = {
-
-    {
-        {1, 3},
-        {
-            2,
-            {
-                {&SWITCH_1, TURN},
-                {&SWITCH_2, TURN},
-            },
-        },
-    },
-    {
-        {1, 5},
-        {
-            1,
-            {
-                {&SWITCH_3, STRAIGHT},
-            },
-        },
-    },
-    // ..
-};
-
-InstructionList<I2COutputModules>
-determine_instruction_list(Route const &route) {
-  InstructionList<I2COutputModules> const IL_INVALID = {0, {}};
-
-  for (auto const &row : TABLE) {
-    if (row.route == route) {
-      return row.instruction_list;
+  InstructionList<I2COutputModules> instruction_list() const {
+    for (auto const &row : TABLE) {
+      if (row.from == from_ && row.to == to_) {
+        return row.instruction_list;
+      }
     }
+
+    return IL_INVALID;
   }
 
-  return IL_INVALID;
-}
+  Route &operator=(Route &&other) {
+    from_ = other.from_;
+    to_ = other.to_;
+    return *this;
+  }
+
+private:
+  Position from_;
+  Position to_;
+
+  InstructionList<I2COutputModules> const IL_INVALID = {0, {}};
+  constexpr static Switch const SWITCH_1{{1, 0}, {2, 1}};
+  constexpr static Switch const SWITCH_2{{3, 0}, {4, 1}};
+  constexpr static Switch const SWITCH_3{{3, 5}, {3, 6}};
+
+  template <class OutputModules> struct Line {
+    Position from;
+    Position to;
+    InstructionList<OutputModules> instruction_list;
+  };
+
+  constexpr static Line<I2COutputModules> const TABLE[] = {
+      {
+          1,
+          3,
+          {
+              2,
+              {
+                  {&SWITCH_1, TURN},
+                  {&SWITCH_2, TURN},
+              },
+          },
+      },
+      {
+          1,
+          5,
+          {
+              1,
+              {
+                  {&SWITCH_3, STRAIGHT},
+              },
+          },
+      },
+  };
+};
 
 template <typename... Addresses>
 Array<uint8_t, sizeof...(Addresses)> read_i2c_inputs(Addresses... addresses) {
@@ -265,7 +267,7 @@ public:
       to_pin.println();
 
       route = {from_position, to_position};
-      instruction_list = determine_instruction_list(route);
+      instruction_list = route.instruction_list();
 
       if (instruction_list.is_valid()) {
         instruction_list.perform(output_modules);
