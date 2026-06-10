@@ -32,7 +32,12 @@
 *.app
 
 # Build infrastructure
-compile_commands.json
-build/
 .cache/
-.python-version
+.direnv/
+.env
+.env.local
+.envrc
+.pio
+/.agent-shell/
+build/
+compile_commands.json
