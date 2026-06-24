@@ -11,9 +11,9 @@
  *   the commanded position. There is no physical position feedback.
  */
 
-constexpr uint8_t PWM_ADDR = 0x41;
-constexpr uint8_t INPUTS_0_ADDR = 112 + 1;
-constexpr uint8_t OUTPUTS_0_ADDR = 64;
+constexpr uint8_t PWM_ADDR = 0x40;
+constexpr uint8_t INPUTS_0_ADDR = 0x38;
+constexpr uint8_t OUTPUTS_0_ADDR = 0x21;
 
 constexpr uint8_t SWITCH_COUNT = 2;
 constexpr uint8_t INPUT_BUTTON_0_PIN = 0;

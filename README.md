@@ -9,9 +9,9 @@ buttons on an I2C input expander.
 
 | Device | Hex Address | Decimal Address | Role | Module Name |
 | --- | --- | --- | --- | --- |
-| `Adafruit_PWMServoDriver` / PCA9685 | `0x41` | `65` | Servo PWM outputs | Outputs 1 |
+| `Adafruit_PWMServoDriver` / PCA9685 | `0x40` | `64` | Servo PWM outputs | Outputs 1 |
 | `I2EOK` / `PCF8574AN` | `0x71` | `112 + 1` | Button inputs | Inputs 0 |
-| `I2AOK` / `PCF857N` | `0x40` | `64` | LED outputs | Outputs 0 |
+| `I2AOK` / `PCF857N` | `0x42` | `66` | LED outputs | Outputs 0 |
 
 ### Mapping
 
