@@ -1,5 +1,6 @@
 #include <Adafruit_PWMServoDriver.h>
 #include <Arduino.h>
+#include <ButtonInput.h>
 #include <Wire.h>
 
 /*
@@ -61,54 +62,17 @@ constexpr SwitchConfig SWITCHES[SWITCH_COUNT] = {
     },
 };
 
-class ButtonInput {
-public:
-  bool pressed_event(bool pressed_now) {
-    if (!DEBOUNCE_ENABLED) {
-      bool const result = !last_reported_pressed_ && pressed_now;
-      last_reported_pressed_ = pressed_now;
-      return result;
-    }
-
-    unsigned long const now = millis();
-    if (pressed_now != last_raw_pressed_) {
-      last_raw_pressed_ = pressed_now;
-      last_changed_ms_ = now;
-    }
-
-    if ((now - last_changed_ms_) < DEBOUNCE_MS) {
-      return false;
-    }
-
-    if (last_raw_pressed_ == last_reported_pressed_) {
-      return false;
-    }
-
-    last_reported_pressed_ = last_raw_pressed_;
-    return last_reported_pressed_;
-  }
-
-private:
-  bool last_raw_pressed_ = false;
-  bool last_reported_pressed_ = false;
-  unsigned long last_changed_ms_ = 0;
-};
-
 Adafruit_PWMServoDriver pwm(PWM_ADDR);
-ButtonInput buttons[SWITCH_COUNT];
+ButtonInput buttons[SWITCH_COUNT] = {
+    ButtonInput(DEBOUNCE_ENABLED, DEBOUNCE_MS),
+    ButtonInput(DEBOUNCE_ENABLED, DEBOUNCE_MS),
+};
 SwitchPosition switch_positions[SWITCH_COUNT] = {
     SwitchPosition::Left,
     SwitchPosition::Left,
 };
 
 uint8_t led_state = LED_ACTIVE_HIGH ? 0x00 : 0xFF;
-
-uint8_t pin_mask(uint8_t pin) { return 0x01 << pin; }
-
-bool is_bit_active(uint8_t value, uint8_t pin, bool active_high) {
-  bool const bit_is_high = (value & pin_mask(pin)) != 0;
-  return active_high ? bit_is_high : !bit_is_high;
-}
 
 void write_pcf8574(uint8_t address, uint8_t value) {
   Wire.beginTransmission(address);

@@ -1,6 +1,6 @@
 PLATFORMIO       ?= uv run pio
 PLATFORMIO_ENV   ?= ladder_track
-PLATFORMIO_ENVS  ?= ladder_track servo_test switch_board
+PLATFORMIO_ENVS  ?= ladder_track servo_test button_test switch_board
 JOBS             ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)
 BUILD_TARGETS    := $(addprefix build-,$(PLATFORMIO_ENVS))
 UPLOAD_PORT      := /dev/ttyUSB0
