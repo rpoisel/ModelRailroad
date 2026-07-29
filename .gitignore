@@ -41,3 +41,6 @@
 /.agent-shell/
 build/
 compile_commands.json
+
+.direnv/
+.devenv/
