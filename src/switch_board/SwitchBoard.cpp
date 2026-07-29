@@ -30,9 +30,13 @@ constexpr uint8_t SWITCH_1_RIGHT_LED_PIN = 3;
 constexpr uint8_t SWITCH_0_PWM_CHANNEL = 0;
 constexpr uint8_t SWITCH_1_PWM_CHANNEL = 1;
 
-constexpr uint16_t SWITCH_LEFT_US = 1000;
-constexpr uint16_t SWITCH_RIGHT_US = 2000;
+constexpr uint8_t SWITCH_LEFT_ANGLE_DEG = 0;
+constexpr uint8_t SWITCH_RIGHT_ANGLE_DEG = 180;
 constexpr uint16_t SWITCH_MOVE_DELAY_MS = 500;
+constexpr uint8_t SERVO_MIN_ANGLE_DEG = 0;
+constexpr uint8_t SERVO_MAX_ANGLE_DEG = 180;
+constexpr uint16_t SERVO_MIN_US = 1000;
+constexpr uint16_t SERVO_MAX_US = 2000;
 constexpr uint8_t SERVO_FREQ = 50;
 constexpr uint16_t LED_PWM_FREQ = 1000;
 constexpr uint16_t LED_PWM_OFF = 0;
@@ -68,6 +72,8 @@ struct SwitchConfig {
   LedOutputConfig left_led;
   LedOutputConfig right_led;
   uint8_t pwm_channel;
+  uint8_t left_angle_deg;
+  uint8_t right_angle_deg;
 };
 
 constexpr SwitchConfig SWITCHES[SWITCH_COUNT] = {
@@ -76,12 +82,16 @@ constexpr SwitchConfig SWITCHES[SWITCH_COUNT] = {
         pcf8574_led(OUTPUTS_0_ADDR, SWITCH_0_LEFT_LED_PIN),
         pcf8574_led(OUTPUTS_0_ADDR, SWITCH_0_RIGHT_LED_PIN),
         SWITCH_0_PWM_CHANNEL,
+        SWITCH_LEFT_ANGLE_DEG,
+        SWITCH_RIGHT_ANGLE_DEG,
     },
     {
         INPUT_BUTTON_1_PIN,
         pcf8574_led(OUTPUTS_0_ADDR, SWITCH_1_LEFT_LED_PIN),
         pcf8574_led(OUTPUTS_0_ADDR, SWITCH_1_RIGHT_LED_PIN),
         SWITCH_1_PWM_CHANNEL,
+        SWITCH_LEFT_ANGLE_DEG,
+        SWITCH_RIGHT_ANGLE_DEG,
     },
 };
 
@@ -181,12 +191,24 @@ void update_switch_leds(uint8_t switch_idx) {
   set_led(config.right_led, position == SwitchPosition::Right);
 }
 
+uint16_t servo_angle_to_microseconds(uint8_t angle_deg) {
+  angle_deg = constrain(angle_deg, SERVO_MIN_ANGLE_DEG, SERVO_MAX_ANGLE_DEG);
+
+  return map(angle_deg, SERVO_MIN_ANGLE_DEG, SERVO_MAX_ANGLE_DEG, SERVO_MIN_US,
+             SERVO_MAX_US);
+}
+
+void write_servo_angle(uint8_t channel, uint8_t angle_deg) {
+  servo_pwm.writeMicroseconds(channel, servo_angle_to_microseconds(angle_deg));
+}
+
 void move_switch(uint8_t switch_idx, SwitchPosition position) {
   SwitchConfig const &config = SWITCHES[switch_idx];
-  uint16_t const pulse_us =
-      position == SwitchPosition::Left ? SWITCH_LEFT_US : SWITCH_RIGHT_US;
+  uint8_t const angle_deg = position == SwitchPosition::Left
+                                ? config.left_angle_deg
+                                : config.right_angle_deg;
 
-  servo_pwm.writeMicroseconds(config.pwm_channel, pulse_us);
+  write_servo_angle(config.pwm_channel, angle_deg);
   switch_positions[switch_idx] = position;
 
   delay(SWITCH_MOVE_DELAY_MS);
