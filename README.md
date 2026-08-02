@@ -65,9 +65,8 @@ The firmware uses 7-bit I2C addresses, matching the addresses printed by the
 | Device | Address | Role | Constant |
 | --- | --- | --- | --- |
 | PCA9685 | `0x40` | Servo PWM outputs | `SERVO_PWM_ADDR` |
-| PCA9685 | `0x41` | Optional LED PWM outputs | `LED_PWM_ADDR` |
+| PCA9685 | `0x41` | LED PWM outputs | `LED_PWM_ADDR` |
 | PCF8574-compatible input expander | `0x38` | Button inputs | `INPUTS_0_ADDR` |
-| PCF8574-compatible output expander | `0x21` | LED outputs | `OUTPUTS_0_ADDR` |
 
 ### Mapping
 
@@ -77,17 +76,15 @@ Default switch-board mapping:
 | --- | --- |
 | Switch 0 button | Input expander pin 0 |
 | Switch 1 button | Input expander pin 1 |
-| Switch 0 left LED | PCF8574 output pin 0 |
-| Switch 0 right LED | PCF8574 output pin 1 |
-| Switch 1 left LED | PCF8574 output pin 2 |
-| Switch 1 right LED | PCF8574 output pin 3 |
+| Switch 0 left LED | LED PWM channel 0 |
+| Switch 0 right LED | LED PWM channel 1 |
+| Switch 1 left LED | LED PWM channel 2 |
+| Switch 1 right LED | LED PWM channel 3 |
 | Switch 0 servo | PCA9685 servo channel 0 |
 | Switch 1 servo | PCA9685 servo channel 1 |
 
-LEDs are configured with `LedOutputConfig`. Each LED can be assigned to either a
-PCF8574 output pin with `pcf8574_led(...)` or a PCA9685 PWM channel with
-`pca9685_led(...)`. The current default mapping uses the PCF8574 output
-expander.
+LEDs are configured with `LedOutputConfig` and assigned to PCA9685 PWM channels
+with `pca9685_led(...)`.
 
 ### Behavior
 
