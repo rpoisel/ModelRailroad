@@ -14,6 +14,7 @@ port for the I2C scanner.
 | `src/servo_test/` | Serial test sketch for PCA9685 servo movement. |
 | `src/i2c_scan/` | I2C bus scanner sketch. |
 | `include/` | Shared helpers such as `ButtonInput` and small utility functions. |
+| `docs/vendor/olimex/ESP32-POE2/` | Vendored official Olimex ESP32-POE2 documentation. |
 | `mock/` | Local Arduino/Wire mocks used by the experimental CMake setup. |
 
 ## Build
@@ -99,10 +100,9 @@ Official Olimex resources used for this port:
 
 The Olimex repository states that hardware is under CERN-OHL-S-2.0, software is
 under GPL-3.0, documentation is under CC BY-SA 4.0, and box design files are
-under CC BY 4.0. If official PDFs or hardware files are vendored into this
-repository later, put them under a dedicated `docs/vendor/olimex/ESP32-POE2/`
-directory and include their upstream URL, license, source revision, and download
-date.
+under CC BY 4.0. Local copies of the key board documents are stored under
+`docs/vendor/olimex/ESP32-POE2/` with upstream URLs, license notes, source
+revision, download date, and checksums.
 
 ## Switch Board
 
