@@ -15,7 +15,7 @@ using Position = int; // Position is synonymous to Track
 using SignedIndex = int;
 using UnsignedIndex = size_t;
 
-constexpr uint8_t I2C_INTERRUPT_PIN = 2;
+constexpr uint16_t I2C_POLL_INTERVAL_MS = 20;
 constexpr Position POS_INVALID = -1;
 
 class I2COutputModule {
@@ -241,36 +241,46 @@ template <typename T> bool is_pin_set(IOPin &result, T const &io_image) {
   return false;
 }
 
-static bool i2c_input_changed = false;
-
 class LadderTrack : public Coroutine {
 public:
   int runCoroutine() override {
     COROUTINE_LOOP() {
+      from_position = POS_INVALID;
       do {
-        COROUTINE_AWAIT(i2c_input_changed);
-        i2c_input_changed = false;
         i2c_inputs = read_i2c_inputs(0x27);
         rc_ok = is_pin_set(from_pin, i2c_inputs);
         if (!rc_ok) {
+          COROUTINE_DELAY(I2C_POLL_INTERVAL_MS);
           continue;
         }
         Serial.print("From pin: ");
         from_pin.println();
         from_position = from_pin.get_position();
+        if (from_position == POS_INVALID) {
+          COROUTINE_DELAY(I2C_POLL_INTERVAL_MS);
+        }
       } while (from_position == POS_INVALID);
 
       do {
-        COROUTINE_AWAIT(i2c_input_changed);
-        i2c_input_changed = false;
+        COROUTINE_DELAY(I2C_POLL_INTERVAL_MS);
+        i2c_inputs = read_i2c_inputs(0x27);
+        rc_ok = is_pin_set(to_pin, i2c_inputs);
+      } while (rc_ok);
+
+      to_position = POS_INVALID;
+      do {
         i2c_inputs = read_i2c_inputs(0x27);
         rc_ok = is_pin_set(to_pin, i2c_inputs);
         if (!rc_ok) {
+          COROUTINE_DELAY(I2C_POLL_INTERVAL_MS);
           continue;
         }
         Serial.print("To pin: ");
         to_pin.println();
         to_position = to_pin.get_position();
+        if (to_position == POS_INVALID) {
+          COROUTINE_DELAY(I2C_POLL_INTERVAL_MS);
+        }
       } while (to_position == POS_INVALID);
 
       route = {from_position, to_position};
@@ -282,6 +292,12 @@ public:
       } else {
         Serial.println("  Route is unknown.");
       }
+
+      do {
+        COROUTINE_DELAY(I2C_POLL_INTERVAL_MS);
+        i2c_inputs = read_i2c_inputs(0x27);
+        rc_ok = is_pin_set(from_pin, i2c_inputs);
+      } while (rc_ok);
     }
   }
 
@@ -302,12 +318,6 @@ LadderTrack ladder_track;
 void setup() {
   Serial.begin(9600);
   Wire.begin();
-
-  // see: https://github.com/RalphBacon/PCF8574-Pin-Extender-I2C/tree/master
-  pinMode(I2C_INTERRUPT_PIN, INPUT_PULLUP);
-  attachInterrupt(
-      digitalPinToInterrupt(I2C_INTERRUPT_PIN),
-      []() { i2c_input_changed = true; }, FALLING);
 }
 
 void loop() { ladder_track.runCoroutine(); }
