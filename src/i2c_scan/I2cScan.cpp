@@ -13,10 +13,18 @@
 // Set I2C bus to use: Wire, Wire1, etc.
 #define WIRE Wire
 
-void setup() {
-  WIRE.begin();
+#ifndef SERIAL_BAUD
+#define SERIAL_BAUD 9600
+#endif
 
-  Serial.begin(9600);
+void setup() {
+#if defined(I2C_SCAN_SDA_PIN) && defined(I2C_SCAN_SCL_PIN)
+  WIRE.begin(I2C_SCAN_SDA_PIN, I2C_SCAN_SCL_PIN);
+#else
+  WIRE.begin();
+#endif
+
+  Serial.begin(SERIAL_BAUD);
   while (!Serial) {
     delay(10);
   }

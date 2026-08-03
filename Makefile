@@ -1,6 +1,6 @@
 PLATFORMIO       ?= uv run pio
-PLATFORMIO_ENV   ?= ladder_track
-PLATFORMIO_ENVS  ?= ladder_track servo_test button_test i2c_scan switch_board
+PLATFORMIO_ENV   ?= uno_ladder_track
+PLATFORMIO_ENVS  ?= uno_ladder_track uno_servo_test uno_button_test uno_i2c_scan uno_switch_board esp32_poe2_i2c_scan
 JOBS             ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)
 BUILD_TARGETS    := $(addprefix build-,$(PLATFORMIO_ENVS))
 UPLOAD_PORT      := /dev/ttyUSB0
